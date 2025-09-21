@@ -141,13 +141,13 @@ def main():
         elif scene_state == 3:
             # Draw torus and cylinder, not intersecting
             glPushMatrix()
-            glTranslatef(-200, 0, 0)
+            glTranslatef(-200, 100, 0)
             glColor3f(0, 1, 0) # Green
             draw_torus(30, 80, 20, 20)
             glPopMatrix()
 
             glPushMatrix()
-            glTranslatef(200, 0, 0)
+            glTranslatef(200, 100, 0)
             glRotatef(90, 1, 0, 0)
             glColor3f(1, 1, 0) # Yellow
             draw_cylinder(60, 200, 20)
@@ -156,13 +156,13 @@ def main():
         elif scene_state == 4:
             # Draw torus and cylinder, intersecting
             glPushMatrix()
-            glTranslatef(50, 0, 0)
+            glTranslatef(50, 100, 0)
             glColor3f(0, 1, 0) # Green
             draw_torus(30, 80, 20, 20)
             glPopMatrix()
 
             glPushMatrix()
-            glTranslatef(150, 0, 0)
+            glTranslatef(150, 100, 0)
             glRotatef(90, 1, 0, 0)
             glColor3f(1, 1, 0) # Yellow
             draw_cylinder(60, 200, 20)
