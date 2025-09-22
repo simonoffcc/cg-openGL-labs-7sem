@@ -166,8 +166,10 @@ def keyboard(key, x, y):
         is_rotation_enabled = not is_rotation_enabled
     elif key == '\x1b':  # Клавиша ESC
         sys.exit()
+    else:
+        pass
 
-# --- Функция обработки изменения размера окна ---
+# Функция обработки изменения размера окна
 def reshape(w, h):
     global window_width, window_height
     window_width = w
