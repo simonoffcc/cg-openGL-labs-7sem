@@ -3,7 +3,7 @@ from OpenGL.GL import *
 from OpenGL.GLU import *
 from OpenGL.GLUT import *
 
-# --- Параметры фигур и анимации ---
+# Параметры фигур и анимации
 cone_radius = 150
 cone1_height = 250
 cone2_height = 500
@@ -20,16 +20,16 @@ cylinder_num_segments = 30
 
 animation_duration = 3000
 
-# --- Глобальные переменные состояния ---
+# Переменные состояния
 scene_state = 1
 rotation_angle = 0
 start_time_anim = 0
-start_time_anim_scene4 = 0 # Новая переменная для анимации 4-й сцены
+start_time_anim_scene4 = 0
 window_width = 800
 window_height = 600
-is_rotation_enabled = True # Новая переменная для управления вращением
+is_rotation_enabled = True
 
-# --- Функции отрисовки ---
+# Функции отрисовки
 def draw_cone(radius, height, segments):
     quad = gluNewQuadric()
     gluQuadricDrawStyle(quad, GLU_LINE)
@@ -45,21 +45,21 @@ def draw_cylinder(radius, height, segments):
     gluCylinder(quad, radius, radius, height, segments, 1)
     gluDeleteQuadric(quad)
 
-# --- Основная функция отрисовки (callback для GLUT) ---
+# Основная функция отрисовки
 def display():
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
     glLoadIdentity()
 
-    # --- Настройка камеры ---
+    # Настройка камеры
     gluPerspective(50, (window_width / window_height), 0.1, 1500.0)
-    glTranslatef(0.0, -150.0, -1000) # Смещаем камеру/сцену для лучшего обзора
+    glTranslatef(0.0, -150.0, -1000) # Чуть смещаем для лучшего обзора
     glRotatef(25, 1, 0, 0)
 
-    # --- Общее вращение всей сцены ---
+    # Общее вращение всей сцены
     glPushMatrix()
     glRotatef(rotation_angle, 0, 1, 0)
 
-    # --- Логика отрисовки для каждой сцены ---
+    # Логика отрисовки для каждой сцены
     if scene_state == 1:
         glPushMatrix()
         glRotatef(-90, 1, 0, 0)
@@ -77,7 +77,7 @@ def display():
         else:
             cone1_rotation_x = 90
 
-        # Анимированный конус
+        # Анимированный конус (маленький)
         glPushMatrix()
         glRotatef(cone1_rotation_x, 1, 0, 0)
         glRotatef(-90, 1, 0, 0)
@@ -85,7 +85,7 @@ def display():
         draw_cone(cone_radius, cone1_height, num_segments)
         glPopMatrix()
 
-        # Статичный конус
+        # Статичный конус (большой)
         glPushMatrix()
         glRotatef(-90, 1, 0, 0)
         glColor3f(0, 0, 1)  # Синий
@@ -107,7 +107,7 @@ def display():
         glPopMatrix()
 
     elif scene_state == 4:
-        # --- Расчет анимации для 4-й сцены ---
+        # Расчет анимации для 4-й сцены
         current_time = glutGet(GLUT_ELAPSED_TIME) - start_time_anim_scene4
         progress = min(current_time / animation_duration, 1.0) # Прогресс от 0.0 до 1.0
 
@@ -141,14 +141,14 @@ def display():
     glPopMatrix()
     glutSwapBuffers()
 
-# --- Функция для анимации и обновления ---
+# Функция для анимации и обновления
 def idle():
     global rotation_angle
     if is_rotation_enabled:
         rotation_angle += 0.02
     glutPostRedisplay()
 
-# --- Функция обработки клавиатуры ---
+# Функция обработки клавиатуры
 def keyboard(key, x, y):
     global scene_state, start_time_anim, start_time_anim_scene4, is_rotation_enabled
     key = key.decode("utf-8")
