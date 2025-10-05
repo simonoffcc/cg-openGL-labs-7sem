@@ -1,230 +1,231 @@
-import pygame
-from pygame.locals import *
+import sys
+import math
 from OpenGL.GL import *
 from OpenGL.GLU import *
-import math
-import numpy as np
+from OpenGL.GLUT import *
+from PIL import Image
 
-def create_checkerboard_texture():
-    """ Creates a 256x256 checkerboard texture """
-    size = 256
-    checkerboard = np.zeros((size, size, 3), dtype=np.uint8)
-    for i in range(size):
-        for j in range(size):
-            if (i // 32 % 2) == (j // 32 % 2):
-                checkerboard[i, j] = [255, 255, 255] # White
-            else:
-                checkerboard[i, j] = [50, 50, 50]   # Dark Gray
-    return checkerboard.tobytes(), size, size
+# --- Глобальные параметры ---
+# Освещение
+light_pos = [4.0, 6.0, 4.0, 1.0]
+light_color = [1.0, 1.0, 1.0, 1.0]
+light_intensity = 1.0
 
-def setup_texture(image_data, width, height):
-    texture_id = glGenTextures(1)
-    glBindTexture(GL_TEXTURE_2D, texture_id)
+# Камера и анимация
+camera_angle = 0.0
+is_rotating = True  # Тоггл вращения
+
+# Текстура
+texture_id = None
+
+# --- Управление освещением ---
+def move_light(dx, dy, dz):
+    light_pos[0] += dx
+    light_pos[1] += dy
+    light_pos[2] += dz
+
+def change_light_color(r, g, b):
+    light_color[0] = r
+    light_color[1] = g
+    light_color[2] = b
+
+# --- Текстура ---
+def load_texture(filename):
+    try:
+        img = Image.open(filename)
+        img_data = img.convert("RGBA").tobytes()
+        w, h = img.size
+    except FileNotFoundError:
+        # Fallback-процедурная текстура (шахматная)
+        w, h = 64, 64
+        img_data = bytearray()
+        for y in range(h):
+            for x in range(w):
+                if (x // 8 + y // 8) % 2 == 0:
+                    img_data.extend([180, 140, 100, 255])
+                else:
+                    img_data.extend([130, 90, 50, 255])
+        img_data = bytes(img_data)
+
+    tex_id = glGenTextures(1)
+    glBindTexture(GL_TEXTURE_2D, tex_id)
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, img_data)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, image_data)
-    return texture_id
+    return tex_id
 
-def draw_cone(radius, height, num_segments):
-    glBegin(GL_TRIANGLE_FAN)
-    # Apex
-    glNormal3f(0.0, 1.0, 0.0)
-    glVertex3f(0.0, height, 0.0)
-    for i in range(num_segments + 1):
-        theta = 2.0 * math.pi * i / num_segments
-        x = radius * math.cos(theta)
-        z = radius * math.sin(theta)
-        # Normal for the side
-        normal = (math.cos(theta), 0.5, math.sin(theta)) # Simplified normal calculation
-        glNormal3fv(normal)
-        glVertex3f(x, 0, z)
-    glEnd()
-
-    # Base
-    glBegin(GL_TRIANGLE_FAN)
-    glNormal3f(0.0, -1.0, 0.0)
-    glVertex3f(0.0, 0.0, 0.0)
-    for i in range(num_segments + 1):
-        theta = 2.0 * math.pi * i / num_segments
-        x = radius * math.cos(theta)
-        z = radius * math.sin(theta)
-        glVertex3f(x, 0, z)
-    glEnd()
-
-def draw_torus(inner_radius, outer_radius, num_sides, num_rings):
-    for i in range(num_rings):
-        glBegin(GL_QUAD_STRIP)
-        for j in range(num_sides + 1):
-            for k in range(2): # Draw two points of the quad
-                theta = 2.0 * math.pi * (i + k) / num_rings
-                phi = 2.0 * math.pi * j / num_sides
-
-                x = (outer_radius + inner_radius * math.cos(phi)) * math.cos(theta)
-                y = (outer_radius + inner_radius * math.cos(phi)) * math.sin(theta)
-                z = inner_radius * math.sin(phi)
-                
-                # Normal calculation
-                normal_x = math.cos(phi) * math.cos(theta)
-                normal_y = math.cos(phi) * math.sin(theta)
-                normal_z = math.sin(phi)
-
-                glNormal3f(normal_x, normal_y, normal_z)
-                glVertex3f(x, y, z)
-        glEnd()
-
-
-def draw_cylinder(radius, height, num_segments):
-    quad = gluNewQuadric()
-    gluQuadricDrawStyle(quad, GLU_FILL)
-    gluQuadricTexture(quad, GL_TRUE)
-    gluQuadricNormals(quad, GLU_SMOOTH)
-    
-    # Cylinder body
-    gluCylinder(quad, radius, radius, height, num_segments, 1)
-    
-    # Top cap
-    glPushMatrix()
-    glTranslatef(0, 0, height)
-    gluDisk(quad, 0, radius, num_segments, 1)
-    glPopMatrix()
-
-    # Bottom cap
-    glPushMatrix()
-    glRotatef(180, 1, 0, 0)
-    gluDisk(quad, 0, radius, num_segments, 1)
-    glPopMatrix()
-
-    gluDeleteQuadric(quad)
-
-
-def main():
-    pygame.init()
-    display = (1000, 800)
-    pygame.display.set_mode(display, DOUBLEBUF | OPENGL)
-    pygame.display.set_caption("Lab 2 - Materials, Lighting, and Textures")
-
-    # --- OpenGL Setup ---
+# --- Инициализация ---
+def init():
+    global texture_id
+    glClearColor(0.2, 0.2, 0.2, 1.0)
     glEnable(GL_DEPTH_TEST)
     glEnable(GL_LIGHTING)
     glEnable(GL_LIGHT0)
-    glEnable(GL_COLOR_MATERIAL)
+    glEnable(GL_NORMALIZE)
+    texture_id = load_texture("texture.jpg")
+    glShadeModel(GL_SMOOTH)
+
+# --- Рисование ---
+def display():
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+    glMatrixMode(GL_MODELVIEW)
+    glLoadIdentity()
+
+    # Камера на уровне фигур
+    radius = 18.0
+    cam_x = math.sin(camera_angle) * radius
+    cam_z = math.cos(camera_angle) * radius
+    gluLookAt(cam_x, 3.0, cam_z, 0.0, 1.5, 0.0, 0.0, 1.0, 0.0)
+
+    # Источник света с учетом интенсивности
+    glLightfv(GL_LIGHT0, GL_POSITION, light_pos)
+    final_light_color = [light_color[i] * light_intensity for i in range(3)] + [1.0]
+    glLightfv(GL_LIGHT0, GL_DIFFUSE, final_light_color)
+    glLightfv(GL_LIGHT0, GL_SPECULAR, final_light_color)
+
+    # 1) Текстурированный матовый конус
+    glPushMatrix()
+    glTranslatef(-6.0, 0.0, 0.0)
+    glEnable(GL_TEXTURE_2D)
+    glBindTexture(GL_TEXTURE_2D, texture_id)
+    glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, [0.8, 0.8, 0.8, 1.0])
+    glMaterialfv(GL_FRONT, GL_SPECULAR, [0.1, 0.1, 0.1, 1.0])
+    glMaterialf(GL_FRONT, GL_SHININESS, 10.0)
+    draw_textured_cone(1.5, 4.0, 32)
+    glDisable(GL_TEXTURE_2D)
+    glPopMatrix()
+
+    # 2) Отполированный тор (внутренний радиус шире)
+    glPushMatrix()
+    glTranslatef(0.0, 0.5, 0.0)
+    glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, [0.8, 0.8, 0.8, 1.0])
+    glMaterialfv(GL_FRONT, GL_SPECULAR, [1.0, 1.0, 1.0, 1.0])
+    glMaterialf(GL_FRONT, GL_SHININESS, 128.0)
+    # glutSolidTorus(innerRadius, outerRadius, nsides, rings)
+    glutSolidTorus(0.8, 2.0, 32, 64)
+    glPopMatrix()
+
+    # 3) Полупрозрачный цилиндр
+    glPushMatrix()
+    glTranslatef(6.0, 0.0, 0.0)
+    glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, [0.2, 0.8, 0.5, 0.55])  # alpha > 0.5
+    glMaterialfv(GL_FRONT, GL_SPECULAR, [1.0, 1.0, 1.0, 0.6])
+    glMaterialf(GL_FRONT, GL_SHININESS, 50.0)
     glEnable(GL_BLEND)
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
-    glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE)
-    
-    # --- Light Setup ---
-    light_pos = [0, 200, 0, 1]
-    light_ambient = [0.3, 0.3, 0.3, 1.0]
-    
-    light_colors = [
-        [0.8, 0.8, 0.8, 1.0], # White
-        [1.0, 0.0, 0.0, 1.0], # Red
-        [0.0, 1.0, 0.0, 1.0], # Green
-        [0.0, 0.0, 1.0, 1.0]  # Blue
-    ]
-    light_color_index = 0
+    q = gluNewQuadric()
+    gluCylinder(q, 1.0, 1.0, 4.0, 32, 1)
+    glPushMatrix()
+    glRotatef(180.0, 1.0, 0.0, 0.0)
+    gluDisk(q, 0.0, 1.0, 32, 1)
+    glPopMatrix()
+    glTranslatef(0.0, 0.0, 4.0)
+    gluDisk(q, 0.0, 1.0, 32, 1)
+    gluDeleteQuadric(q)
+    glDisable(GL_BLEND)
+    glPopMatrix()
 
-    glLightfv(GL_LIGHT0, GL_POSITION, light_pos)
-    glLightfv(GL_LIGHT0, GL_AMBIENT, light_ambient)
-    glLightfv(GL_LIGHT0, GL_DIFFUSE, light_colors[light_color_index])
-    glLightfv(GL_LIGHT0, GL_SPECULAR, light_colors[light_color_index])
-    
-    # --- Texture Setup ---
-    texture_data, width, height = create_checkerboard_texture()
-    texture_id = setup_texture(texture_data, width, height)
+    glutSwapBuffers()
 
-    # --- Camera Setup ---
-    gluPerspective(45, (display[0] / display[1]), 0.1, 1500.0)
-    glTranslatef(0.0, -100.0, -1000)
-    glRotatef(-30, 1, 0, 0)
-    
-    rotation_angle = 0
-    light_sphere_colors = [[1,1,0], [1,0,0], [0,1,0], [0,0,1]]
+def draw_textured_cone(radius, height, slices):
+    # Боковая поверхность
+    glBegin(GL_TRIANGLE_FAN)
+    glNormal3f(0.0, 1.0, 0.0)
+    glTexCoord2f(0.5, 1.0)
+    glVertex3f(0.0, height, 0.0)  # вершина
+    for i in range(slices + 1):
+        angle = 2.0 * math.pi * i / slices
+        nx, nz = math.cos(angle), math.sin(angle)
+        glNormal3f(nx, 0.0, nz)
+        glTexCoord2f(i / slices, 0.0)
+        glVertex3f(radius * nx, 0.0, radius * nz)
+    glEnd()
 
+    # Основание
+    glBegin(GL_TRIANGLE_FAN)
+    glNormal3f(0.0, -1.0, 0.0)
+    glTexCoord2f(0.5, 0.5)
+    glVertex3f(0.0, 0.0, 0.0)  # центр
+    for i in range(slices + 1):
+        angle = 2.0 * math.pi * i / slices
+        x, z = math.cos(angle), math.sin(angle)
+        glTexCoord2f(0.5 + 0.5 * x, 0.5 + 0.5 * z)
+        glVertex3f(radius * x, 0.0, radius * z)
+    glEnd()
 
-    while True:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                quit()
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_c:
-                    light_color_index = (light_color_index + 1) % len(light_colors)
-                    glLightfv(GL_LIGHT0, GL_DIFFUSE, light_colors[light_color_index])
-                    glLightfv(GL_LIGHT0, GL_SPECULAR, light_colors[light_color_index])
+def reshape(w, h):
+    glViewport(0, 0, w, h)
+    glMatrixMode(GL_PROJECTION)
+    glLoadIdentity()
+    gluPerspective(60.0, float(w) / float(h if h > 0 else 1), 1.0, 100.0)
+    glMatrixMode(GL_MODELVIEW)
 
+# --- Обработчики ввода ---
+def keyboard(key, x, y):
+    # Без декодирования UTF-8 (фикс для Windows/freeglut)
+    global light_intensity, is_rotating
 
-        # --- Keyboard controls for light ---
-        keys = pygame.key.get_pressed()
-        if keys[pygame.K_LEFT]:
-            light_pos[0] -= 10
-        if keys[pygame.K_RIGHT]:
-            light_pos[0] += 10
-        if keys[pygame.K_UP]:
-            light_pos[1] += 10
-        if keys[pygame.K_DOWN]:
-            light_pos[1] -= 10
-        if keys[pygame.K_PAGEUP]:
-            light_pos[2] += 10
-        if keys[pygame.K_PAGEDOWN]:
-            light_pos[2] -= 10
+    # Нормализуем регистр для латинских букв (A..Z -> a..z)
+    if 65 <= key[0] <= 90:  # 'A'..'Z'
+        k = bytes([key[0] + 32])
+    else:
+        k = key
 
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-        
-        # Update light position
-        glLightfv(GL_LIGHT0, GL_POSITION, light_pos)
+    # Движение источника света (WASD)
+    step = 0.5
+    if k == b'w':
+        move_light(0.0, step, 0.0)
+    elif k == b's':
+        move_light(0.0, -step, 0.0)
+    elif k == b'a':
+        move_light(-step, 0.0, 0.0)
+    elif k == b'd':
+        move_light(step, 0.0, 0.0)
 
-        # Draw a sphere to represent the light source
-        glPushMatrix()
-        glTranslatef(light_pos[0], light_pos[1], light_pos[2])
-        glColor3fv(light_sphere_colors[light_color_index])
-        quad = gluNewQuadric()
-        gluSphere(quad, 15, 32, 32)
-        gluDeleteQuadric(quad)
-        glPopMatrix()
+    # Цвет света
+    elif k == b'1':
+        change_light_color(1.0, 1.0, 1.0)      # белый
+    elif k == b'2':
+        change_light_color(1.0, 0.2, 0.2)      # красный
+    elif k == b'3':
+        change_light_color(0.2, 0.2, 1.0)      # синий
 
-        glPushMatrix()
-        glRotatef(rotation_angle, 0, 1, 0)
+    # Интенсивность света (+/= увеличивает, - уменьшает)
+    elif k in (b'+', b'='):
+        light_intensity = min(light_intensity + 0.1, 5.0)
+    elif k == b'-':
+        light_intensity = max(light_intensity - 0.1, 0.0)
 
-        # --- Draw Objects ---
-        
-        # 1. Polished Torus (Shiny)
-        glPushMatrix()
-        glTranslatef(-300, 0, 0)
-        specular = [1.0, 1.0, 1.0, 1.0]
-        shininess = 128.0
-        glMaterialfv(GL_FRONT, GL_SPECULAR, specular)
-        glMaterialf(GL_FRONT, GL_SHININESS, shininess)
-        glColor3f(0, 1, 0) # Green
-        draw_torus(40, 100, 30, 30)
-        # Reset material properties
-        glMaterialfv(GL_FRONT, GL_SPECULAR, [0,0,0,0])
-        glMaterialf(GL_FRONT, GL_SHININESS, 0)
-        glPopMatrix()
+    # Тоггл вращения камеры
+    elif k == b'r':
+        is_rotating = not is_rotating
 
-        # 2. Transparent Cone
-        glPushMatrix()
-        glTranslatef(0, -150, 0)
-        glColor4f(0, 0, 1, 0.5) # Blue, 50% transparent
-        draw_cone(150, 500, 50)
-        glPopMatrix()
+    # Esc — выход
+    elif k == b'\x1b':
+        sys.exit(0)
 
-        # 3. Textured Cylinder (Matte)
-        glPushMatrix()
-        glTranslatef(300, -150, 0)
-        glRotatef(-90, 1, 0, 0)
-        glEnable(GL_TEXTURE_2D)
-        glBindTexture(GL_TEXTURE_2D, texture_id)
-        glColor3f(1, 1, 1) # Use white color to not tint the texture
-        draw_cylinder(80, 300, 30)
-        glDisable(GL_TEXTURE_2D)
-        glPopMatrix()
+    glutPostRedisplay()
 
-        glPopMatrix()
+def update(value):
+    global camera_angle
+    if is_rotating:
+        camera_angle += 0.01
+        if camera_angle > 2.0 * math.pi:
+            camera_angle -= 2.0 * math.pi
+    glutPostRedisplay()
+    glutTimerFunc(16, update, 0)  # ~60 FPS
 
-        rotation_angle += 0.3
-        pygame.display.flip()
-        pygame.time.wait(10)
+def main():
+    glutInit(sys.argv)
+    glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA | GLUT_DEPTH)
+    glutInitWindowSize(800, 600)
+    glutCreateWindow(b"Scene: Textured Cone, Polished Torus, Transparent Cylinder")
+    init()
+    glutDisplayFunc(display)
+    glutReshapeFunc(reshape)
+    glutKeyboardFunc(keyboard)
+    glutTimerFunc(0, update, 0)
+    glutMainLoop()
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
