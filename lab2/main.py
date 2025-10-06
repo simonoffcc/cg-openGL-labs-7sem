@@ -5,9 +5,8 @@ from OpenGL.GLU import *
 from OpenGL.GLUT import *
 from PIL import Image
 
-# -----------------------------
+
 # Глобальные параметры и переключатели
-# -----------------------------
 light_pos = [4.0, 6.0, 4.0, 1.0]
 light_color = [1.0, 1.0, 1.0, 1.0]
 light_intensity = 1.0
@@ -20,9 +19,7 @@ is_bump_enabled = False     # B - вкл/выкл bump-mapping
 
 texture_id = None
 
-# -----------------------------
 # Функции управления светом
-# -----------------------------
 def move_light(dx, dy, dz):
     light_pos[0] += dx
     light_pos[1] += dy
@@ -33,9 +30,8 @@ def change_light_color(r, g, b):
     light_color[1] = g
     light_color[2] = b
 
-# -----------------------------
+
 # Визуализация источника света
-# -----------------------------
 def draw_light_gizmo():
     glPushAttrib(GL_CURRENT_BIT | GL_LIGHTING_BIT | GL_ENABLE_BIT)
     glDisable(GL_LIGHTING)
@@ -48,9 +44,7 @@ def draw_light_gizmo():
     glPopMatrix()
     glPopAttrib()
 
-# -----------------------------
 # Загрузка текстуры
-# -----------------------------
 def load_texture(filename):
     try:
         img = Image.open(filename).convert("RGBA")
@@ -84,9 +78,8 @@ def load_texture(filename):
         pass
     return tex
 
-# -----------------------------
+
 # Инициализация OpenGL
-# -----------------------------
 def init():
     global texture_id
     glClearColor(0.2, 0.2, 0.2, 1.0)
@@ -97,9 +90,7 @@ def init():
     glShadeModel(GL_SMOOTH)
     texture_id = load_texture("texture.jpg")
 
-# -----------------------------
 # Отрисовка всей сцены
-# -----------------------------
 def display():
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
     glMatrixMode(GL_MODELVIEW)
@@ -160,9 +151,8 @@ def display():
 
     glutSwapBuffers()
 
-# -----------------------------
+
 # Отрисовка конуса с bump-mapping
-# -----------------------------
 def draw_textured_cone(radius, height, slices):
     v_scale = 0.5
     glBegin(GL_TRIANGLE_FAN)
@@ -192,9 +182,7 @@ def draw_textured_cone(radius, height, slices):
         glVertex3f(radius * x, 0.0, radius * z)
     glEnd()
 
-# -----------------------------
 # Служебные функции GLUT
-# -----------------------------
 def reshape(w, h):
     glViewport(0, 0, w, h)
     glMatrixMode(GL_PROJECTION)
@@ -225,6 +213,7 @@ def keyboard(key, x, y):
     elif k == b't': is_texture_enabled = not is_texture_enabled
     elif k == b'b': is_bump_enabled = not is_bump_enabled
     elif k == b'\x1b': sys.exit(0)
+    else: pass
     
     glutPostRedisplay()
 
@@ -237,9 +226,8 @@ def update(value):
     glutPostRedisplay()
     glutTimerFunc(16, update, 0)
 
-# -----------------------------
+
 # Точка входа
-# -----------------------------
 def main():
     glutInit(sys.argv)
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA | GLUT_DEPTH)
