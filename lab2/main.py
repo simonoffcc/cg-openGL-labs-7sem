@@ -198,12 +198,12 @@ def keyboard(key, x, y):
         k = key
 
     step = 0.5
-    if k == b'w': move_light(0.0, step, 0.0)
-    elif k == b's': move_light(0.0, -step, 0.0)
+    if k == b'q': move_light(0.0, step, 0.0)
+    elif k == b'e': move_light(0.0, -step, 0.0)
     elif k == b'a': move_light(-step, 0.0, 0.0)
     elif k == b'd': move_light(step, 0.0, 0.0)
-    elif k == b'q': move_light(0.0, 0.0, -step)
-    elif k == b'e': move_light(0.0, 0.0, step)
+    elif k == b'w': move_light(0.0, 0.0, -step)
+    elif k == b's': move_light(0.0, 0.0, step)
     elif k == b'1': change_light_color(1.0, 1.0, 1.0)
     elif k == b'2': change_light_color(1.0, 0.2, 0.2)
     elif k == b'3': change_light_color(0.2, 0.2, 1.0)
