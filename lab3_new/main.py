@@ -182,7 +182,7 @@ class Scene:
         draw_vao_elements(self.cone_VAO, self.cone_EBO, self.cone_num_indices)
 
         set_mat4_uniform(prog, "model", glm.translate(glm.mat4(1.0), glm.vec3(*self.torus_center)))
-        glUniform3fv(glGetUniformLocation(prog, "materialDiffuse"), 1, [1.0, 0.0, 0.0])
+        glUniform3fv(glGetUniformLocation(prog, "materialDiffuse"), 1, [0.0, 1.0, 0.0])
         glUniform3fv(glGetUniformLocation(prog, "materialSpecular"), 1, [0.6, 0.6, 0.6])
         glUniform1f(glGetUniformLocation(prog, "materialShininess"), 64.0)
         glUniform1i(glGetUniformLocation(prog, "useTexture"), 0)
@@ -192,7 +192,7 @@ class Scene:
         glDepthMask(GL_FALSE)
         glEnable(GL_BLEND)
         set_mat4_uniform(prog, "model", glm.translate(glm.mat4(1.0), glm.vec3(*self.cyl_center)))
-        glUniform3fv(glGetUniformLocation(prog, "materialDiffuse"), 1, [0.0, 0.5, 1.0])
+        glUniform3fv(glGetUniformLocation(prog, "materialDiffuse"), 1, [0.9, 0.5, 1.0])
         glUniform3fv(glGetUniformLocation(prog, "materialSpecular"), 1, [0.1, 0.1, 0.1])
         glUniform1f(glGetUniformLocation(prog, "materialShininess"), 4.0)
         glUniform1i(glGetUniformLocation(prog, "useTexture"), 0)
