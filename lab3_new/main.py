@@ -21,7 +21,7 @@ class Scene:
         self.cyl_height = 220.0
         self.cyl_radius = 70.0
         self.torus_center = np.array([300.0, 125.0, 0.0], dtype=np.float32)
-        self.cone_center = np.array([-300.0, self.cone_height/2.0, 0.0], dtype=np.float32)
+        self.cone_center = np.array([-300.0, self.cone_height, 0.0], dtype=np.float32)
         self.cyl_center = np.array([0.0, self.cyl_height/2.0, 0.0], dtype=np.float32)
 
         self.light_enabled = True
@@ -124,7 +124,10 @@ class Scene:
         set_mat4_uniform(prog, "model", glm.mat4(1.0))
         draw_vao_elements(self.floor_VAO, self.floor_EBO, self.floor_num_indices)
 
-        set_mat4_uniform(prog, "model", glm.translate(glm.mat4(1.0), glm.vec3(*self.cone_center)))
+        model_cone = glm.translate(glm.mat4(1.0), glm.vec3(*self.cone_center))
+        model_cone = glm.rotate(model_cone, glm.radians(-90.0), glm.vec3(1.0, 0.0, 0.0))
+        model_cone = glm.translate(model_cone, glm.vec3(0.0, 0.0, -self.cone_height / 2.0))
+        set_mat4_uniform(prog, "model", model_cone)
         draw_vao_elements(self.cone_VAO, self.cone_EBO, self.cone_num_indices)
 
         set_mat4_uniform(prog, "model", glm.translate(glm.mat4(1.0), glm.vec3(*self.cyl_center)))
@@ -163,7 +166,10 @@ class Scene:
         glUniform1i(glGetUniformLocation(prog, "isTransparent"), 0)
         draw_vao_elements(self.floor_VAO, self.floor_EBO, self.floor_num_indices)
 
-        set_mat4_uniform(prog, "model", glm.translate(glm.mat4(1.0), glm.vec3(*self.cone_center)))
+        model_cone = glm.translate(glm.mat4(1.0), glm.vec3(*self.cone_center))
+        model_cone = glm.rotate(model_cone, glm.radians(-90.0), glm.vec3(1.0, 0.0, 0.0))
+        model_cone = glm.translate(model_cone, glm.vec3(0.0, 0.0, -self.cone_height / 2.0))
+        set_mat4_uniform(prog, "model", model_cone)
         glUniform3fv(glGetUniformLocation(prog, "materialSpecular"), 1, [0.05, 0.05, 0.05])
         glUniform1f(glGetUniformLocation(prog, "materialShininess"), 2.0)
         if self.cone_texture_enabled:
