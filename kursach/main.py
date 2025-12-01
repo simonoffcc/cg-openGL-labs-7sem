@@ -107,9 +107,10 @@ def draw_emitter_wireframe():
     glColor3f(0.5, 0.5, 0.5)
     glPushMatrix()
     glTranslatef(CONE_APEX[0], CONE_APEX[1] - CONE_HEIGHT, CONE_APEX[2])
-    glRotatef(-90, 1, 0, 0) # GLUT конус ориентирован по Z
-    glutWireCone(CONE_RADIUS, CONE_HEIGHT, 10, 5)
+    glRotatef(-90, 1, 0, 0) 
+    glutWireCone(CONE_RADIUS, CONE_HEIGHT, 40, 10)
     glPopMatrix()
+
 
 def draw_plane():
     glColor3f(0.3, 0.3, 0.3)
