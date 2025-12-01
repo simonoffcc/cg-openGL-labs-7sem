@@ -21,7 +21,7 @@ CONE_APEX = np.array([0.0, 0.0, 0.0])
 EMISSION_RATE = 8
 
 # Параметры боковой плоскости
-PLANE_X_POS = 3.0  # Сдвинута вправо на 3 единицы
+PLANE_X_POS = 3.0
 
 # Цвета
 COLOR_START = np.array([0.0, 1.0, 1.0]) 
@@ -31,7 +31,7 @@ COLOR_END = np.array([1.0, 0.0, 1.0])
 particles = []
 view_rot_x = 20.0
 view_rot_y = 0.0
-is_top_view = False # Флаг для переключения вида
+is_top_view = False
 
 class Particle:
     def __init__(self):
@@ -76,7 +76,6 @@ class Particle:
         self.vel += GRAVITY_VECTOR * dt
         self.pos += self.vel * dt
         
-        # Столкновение с боковой плоскостью
         if self.pos[0] >= PLANE_X_POS:
              self.pos[0] = PLANE_X_POS - 0.01
              self.vel[0] = -self.vel[0] * 0.8 
@@ -123,16 +122,12 @@ def display():
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
     glLoadIdentity()
     
-    # Переключение камеры
     if is_top_view:
-        # Вид сверху: камера смотрит на сцену с высоты
         gluLookAt(0, 15, 0.01, 0, 0, 0, 0, 0, -1)
     else:
-        # Стандартный вид сбоку
         gluLookAt(0, 2, 20, 0, 0, 0, 0, 1, 0)
-        glRotatef(view_rot_x, 1, 0, 0) # Наклоняем только в боковом виде
-    
-    # Вращение вокруг оси Y оставляем для обоих видов
+        glRotatef(view_rot_x, 1, 0, 0)
+
     glRotatef(view_rot_y, 0, 1, 0)
 
     draw_emitter_wireframe()
@@ -171,17 +166,14 @@ def reshape(w, h):
     gluPerspective(45, w / h, 0.1, 100.0)
     glMatrixMode(GL_MODELVIEW)
 
-# Функция для обработки нажатий клавиш
 def keyboard(key, x, y):
     global is_top_view
-    
-    # Переключение вида
+
     if key == b't' or key == b'T':
         is_top_view = not is_top_view
         view_mode = "Top-Down" if is_top_view else "Perspective"
         print(f"View mode: {view_mode}")
-        
-    # Выход по Escape
+
     elif key == b'\x1b':
         sys.exit()
 
@@ -196,7 +188,7 @@ def main():
     glutDisplayFunc(display)
     glutReshapeFunc(reshape)
     glutTimerFunc(0, timer, 0)
-    glutKeyboardFunc(keyboard) # Регистрируем функцию клавиатуры
+    glutKeyboardFunc(keyboard)
     
     glutMainLoop()
 
